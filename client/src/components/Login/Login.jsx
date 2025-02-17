@@ -1,4 +1,4 @@
-import React, {use, useState} from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -47,7 +47,7 @@ const Login = () => {
                     setError(response.data.error || 'Something went wrong');
                 }
             }catch(error){
-                setError(error.response?.data?.error || error.message);
+                setError(error.response?.data?.error || "Registration failed. Please try again.");
             }
         } else{
             if (!username || !password){
@@ -60,12 +60,12 @@ const Login = () => {
                     password
                 });
 
-                if(response.status === 200){
+                if(response.data.token){
                     console.log('Login Successful:', response.data.token);
                     localStorage.setItem('token', response.data.token);
                     navigate('/dashboard')
                 } else{
-                    setError(response.data.error || 'Invalid Credentials');
+                    setError('Login failed. Please check your credentials.');
                 }
             } catch(error){
                 setError(error.response?.data?.error || error.message);
@@ -77,7 +77,14 @@ const Login = () => {
   return (
     <div>
         <form onSubmit={handleLogin}>
-            {signUp && <input type='email' placeholder='Email'></input>}
+            {signUp && 
+            <input 
+                type='email' 
+                placeholder='Email'
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+            />}
 
             <input 
                 type='username' 
@@ -101,6 +108,7 @@ const Login = () => {
                 placeholder='Confirm Password'
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                required
             />}
 
             <button type="submit">{signUp ? 'Register' : 'Login'}</button>
