@@ -31,10 +31,15 @@ app.post('/register', async (req, res) => {
     const hashedPassword = bcrypt.hashSync(password, salt);
 
     try {
-        const signUp = await pool.query('INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id', [username, email, hashedPassword]);
+        const signUp = await pool.query(
+            'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username', 
+            [username, email, hashedPassword]
+        );
+
+        const newUser = signUp.rows[0];
 
         const token = jwt.sign(
-            { id: users.rows[0].id, username: users.rows[0].username }, 
+            { id: newUser.id, username: newUser.username }, 
             process.env.JWT_SECRET, 
             { expiresIn: '1h' }
         );
