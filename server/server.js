@@ -53,9 +53,9 @@ app.post('/register', async (req, res) => {
 })
 
 app.post('/login', async (req, res) => {
-    const {username, password} = req.body;
+    const { username, password } = req.body;
 
-    try{
+    try {
         const users = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
 
         if (!users.rows[0]) {
@@ -67,8 +67,12 @@ app.post('/login', async (req, res) => {
         if (!valid) {
             return res.status(401).json({ error: "Invalid credentials" });
         }
-
-        const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '1hr' });
+        
+        const token = jwt.sign(
+            { id: users.rows[0].id, username: users.rows[0].username }, 
+            process.env.JWT_SECRET, 
+            { expiresIn: '1hr' }
+        );
 
         res.json({ username: users.rows[0].username, token });
 
@@ -77,6 +81,7 @@ app.post('/login', async (req, res) => {
         res.status(500).json({ error: "Something went wrong" });
     }
 });
+
 
 app.get('/dashboard', authenticateToken, (req, res) => {
     res.json({ message: `Welcome to your dashboard, ${req.user.username}!` });
