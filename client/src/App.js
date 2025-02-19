@@ -5,6 +5,7 @@ import { AuthProvider } from "./components/Auth/AuthContext";
 import PrivateRoute from "./components/Auth/PrivateRoute";
 import Login from "./components/Login/Login";
 import Dashboard from "./components/Dashboard/Dashboard";
+import Profile from "./components/Profile/Profile";
 
 function App() {
   return (
@@ -15,6 +16,10 @@ function App() {
           <Route 
             path="/dashboard" 
             element={<PrivateRoute><Dashboard /></PrivateRoute>} 
+          />
+          <Route 
+            path="/profile" 
+            element={<PrivateRoute><Profile /></PrivateRoute>} 
           />
         </Routes>
       </AuthProvider>

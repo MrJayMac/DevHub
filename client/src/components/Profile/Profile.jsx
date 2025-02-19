@@ -20,14 +20,21 @@ const Profile = () => {
                 const res = await axios.get("http://localhost:8000/profile", {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                setProfile(res.data);
+    
+                const fetchedProfile = res.data;
+    
+                setProfile({
+                    ...fetchedProfile,
+                    social_links: fetchedProfile.social_links || { github: "", linkedin: "" }
+                });
+    
             } catch (error) {
                 console.error("Error fetching profile:", error);
             }
         };
         fetchProfile();
     }, []);
-
+    
     const handleChange = (e) => {
         const { name, value } = e.target;
         setProfile((prev) => ({

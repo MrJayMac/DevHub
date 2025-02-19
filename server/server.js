@@ -13,7 +13,7 @@ app.use(cors());
 const PORT = process.env.PORT ?? 8000;
 
 
-
+// Login and registration routes
 app.post('/register', async (req, res) => {
     const {username, email, password} = req.body;
 
@@ -99,6 +99,43 @@ app.get('/me', authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Something went wrong" });
     }
 });
+
+
+// Profile Routes
+app.get('/profile', authenticateToken, async (req, res) => {
+    try {
+        const user = await pool.query(
+            "SELECT id, username, email, bio, skills, social_links, profile_picture FROM users WHERE id = $1", 
+            [req.user.id]
+        );
+
+        if (user.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json(user.rows[0]);
+    } catch (err) {
+        console.error("Error fetching profile:", err);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
+app.put('/profile', authenticateToken, async (req, res) => {
+    const { bio, skills, social_links, profile_picture } = req.body;
+
+    try {
+        await pool.query(
+            "UPDATE users SET bio = $1, skills = $2, social_links = $3, profile_picture = $4 WHERE id = $5",
+            [bio, skills, JSON.stringify(social_links), profile_picture, req.user.id]
+        );
+
+        res.json({ message: "Profile updated successfully" });
+    } catch (err) {
+        console.error("Error updating profile:", err);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
 
 
 app.listen(PORT, () => console.log(`Server running on PORT: ${PORT}`));

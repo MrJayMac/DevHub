@@ -42,6 +42,7 @@ const Dashboard = () => {
             {user && <h2>Welcome, {user.username}!</h2>}
             <p>{message}</p>
             <button onClick={logout}>Logout</button>
+            <button onClick={() => navigate("/profile")}>Edit Profile</button>
         </div>
     );
 };
