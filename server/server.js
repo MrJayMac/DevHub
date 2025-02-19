@@ -136,6 +136,106 @@ app.put('/profile', authenticateToken, async (req, res) => {
     }
 });
 
+//  Create a New Blog Post
+app.post('/posts', authenticateToken, async (req, res) => {
+    const { title, content } = req.body;
+
+    if (!title || !content) {
+        return res.status(400).json({ error: "Title and content are required." });
+    }
+
+    try {
+        const newPost = await pool.query(
+            "INSERT INTO posts (user_id, title, content) VALUES ($1, $2, $3) RETURNING *",
+            [req.user.id, title, content]
+        );
+        res.status(201).json(newPost.rows[0]);
+    } catch (error) {
+        console.error("Error creating post:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
+//  Get All Blog Posts
+app.get('/posts', async (req, res) => {
+    try {
+        const posts = await pool.query("SELECT posts.*, users.username FROM posts JOIN users ON posts.user_id = users.id ORDER BY created_at DESC");
+        res.json(posts.rows);
+    } catch (error) {
+        console.error("Error fetching posts:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
+//  Get a Single Blog Post
+app.get('/posts/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const post = await pool.query(
+            "SELECT posts.*, users.username FROM posts JOIN users ON posts.user_id = users.id WHERE posts.id = $1",
+            [id]
+        );
+
+        if (post.rows.length === 0) {
+            return res.status(404).json({ error: "Post not found" });
+        }
+
+        res.json(post.rows[0]);
+    } catch (error) {
+        console.error("Error fetching post:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
+//  Edit a Blog Post
+app.put('/posts/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const { title, content } = req.body;
+
+    try {
+        const post = await pool.query("SELECT * FROM posts WHERE id = $1", [id]);
+        if (post.rows.length === 0) {
+            return res.status(404).json({ error: "Post not found" });
+        }
+
+        if (post.rows[0].user_id !== req.user.id) {
+            return res.status(403).json({ error: "Unauthorized" });
+        }
+
+        await pool.query(
+            "UPDATE posts SET title = $1, content = $2 WHERE id = $3",
+            [title, content, id]
+        );
+
+        res.json({ message: "Post updated successfully" });
+    } catch (error) {
+        console.error("Error updating post:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
+//  Delete a Blog Post (Only Author Can Delete)
+app.delete('/posts/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const post = await pool.query("SELECT * FROM posts WHERE id = $1", [id]);
+        if (post.rows.length === 0) {
+            return res.status(404).json({ error: "Post not found" });
+        }
+
+        if (post.rows[0].user_id !== req.user.id) {
+            return res.status(403).json({ error: "Unauthorized" });
+        }
+
+        await pool.query("DELETE FROM posts WHERE id = $1", [id]);
+        res.json({ message: "Post deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting post:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
 
 
 app.listen(PORT, () => console.log(`Server running on PORT: ${PORT}`));
