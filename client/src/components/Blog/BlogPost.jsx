@@ -11,6 +11,8 @@ const BlogPost = () => {
     const [hasLiked, setHasLiked] = useState(false);
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState("");
+    const [replyingTo, setReplyingTo] = useState(null);
+    const [replyText, setReplyText] = useState(""); 
 
     useEffect(() => {
         const fetchPost = async () => {
@@ -69,16 +71,90 @@ const BlogPost = () => {
         }
     };
 
+    const handleReplySubmit = async (e, parentId) => {
+        e.preventDefault();
+        if (!replyText.trim()) return;
+    
+        try {
+            const res = await axios.post(
+                `http://localhost:8000/posts/${id}/comments`,
+                { content: replyText, parent_id: parentId },
+                { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+            );
+    
+            setComments((prevComments) => {
+                const updateReplies = (comments) => {
+                    return comments.map(comment => {
+                        if (comment.id === parentId) {
+                            return { ...comment, replies: [...(comment.replies || []), res.data] };
+                        }
+                        return { ...comment, replies: comment.replies ? updateReplies(comment.replies) : [] };
+                    });
+                };
+                return updateReplies(prevComments);
+            });
+    
+            setReplyingTo(null); 
+            setReplyText("");  
+        } catch (error) {
+            console.error("Error adding reply:", error.response?.data || error.message);
+        }
+    };
+    
+
     const handleDeleteComment = async (commentId) => {
         try {
             await axios.delete(`http://localhost:8000/comments/${commentId}`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
             });
 
-            setComments(comments.filter(comment => comment.id !== commentId));
+            setComments((prevComments) => {
+                const filterComments = (comments) => {
+                    return comments
+                        .filter(comment => comment.id !== commentId)
+                        .map(comment => ({
+                            ...comment,
+                            replies: comment.replies ? filterComments(comment.replies) : []
+                        }));
+                };
+                return filterComments(prevComments);
+            });
         } catch (error) {
             console.error("Error deleting comment:", error.response?.data || error.message);
         }
+    };
+
+    const handleReplyClick = (commentId) => {
+        setReplyingTo(replyingTo === commentId ? null : commentId);
+        setReplyText("");
+    };
+
+    const renderComments = (commentList) => {
+        return commentList.map((comment) => (
+            <div key={comment.id} style={{ marginLeft: comment.parent_id ? "20px" : "0px", borderLeft: comment.parent_id ? "2px solid gray" : "none", paddingLeft: "10px" }}>
+                <p><strong>{comment.username}:</strong> {comment.content}</p>
+
+                <button onClick={() => handleReplyClick(comment.id)}>↪ Reply</button>
+
+                {user?.id === comment.user_id && (
+                    <button onClick={() => handleDeleteComment(comment.id)}>🗑 Delete</button>
+                )}
+
+                {replyingTo === comment.id && (
+                    <form onSubmit={(e) => handleReplySubmit(e, comment.id)} style={{ marginTop: "5px" }}>
+                        <input 
+                            type="text" 
+                            placeholder="Write a reply..." 
+                            value={replyText} 
+                            onChange={(e) => setReplyText(e.target.value)} 
+                        />
+                        <button type="submit">Reply</button>
+                    </form>
+                )}
+
+                {comment.replies?.length > 0 && <div>{renderComments(comment.replies)}</div>}
+            </div>
+        ));
     };
 
     if (!post) return <h2>Loading post...</h2>;
@@ -88,12 +164,11 @@ const BlogPost = () => {
             <h1>{post.title}</h1>
             <p>{post.content}</p>
 
-            {/* Like Button */}
             <button onClick={handleLike}>
-                {hasLiked ? "❌ Remove Like" : "❤️ Like"} ({likes})
+                {hasLiked ? "Remove Like" : "Like"} ({likes})
             </button>
 
-            {/* Comment Section */}
+
             <h2>Comments</h2>
             <form onSubmit={handleCommentSubmit}>
                 <input 
@@ -106,14 +181,7 @@ const BlogPost = () => {
             </form>
 
             {comments.length > 0 ? (
-                comments.map((comment) => (
-                    <div key={comment.id}>
-                        <p><strong>{comment.username}:</strong> {comment.content}</p>
-                        {user?.id === comment.user_id && (
-                            <button onClick={() => handleDeleteComment(comment.id)}>🗑 Delete</button>
-                        )}
-                    </div>
-                ))
+                <div>{renderComments(comments)}</div>
             ) : (
                 <p>No comments yet.</p>
             )}

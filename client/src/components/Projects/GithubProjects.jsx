@@ -42,7 +42,6 @@ const GitHubProjects = ({ githubUsername }) => {
 
     return (
         <div>
-            <h2>GitHub Projects</h2>
             {projects.length === 0 ? (
                 <p>No public repositories found.</p>
             ) : (

@@ -8,6 +8,7 @@ const PublicProfile = () => {
     const navigate = useNavigate();
     const [profile, setProfile] = useState(null);
     const [posts, setPosts] = useState([]);
+    const [githubUsername, setGithubUsername] = useState(null);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -18,6 +19,12 @@ const PublicProfile = () => {
                 });
 
                 setProfile(res.data);
+
+                // ✅ Extract GitHub username from the stored URL
+                if (res.data.social_links?.github) {
+                    const username = res.data.social_links.github.split("/").pop();
+                    setGithubUsername(username);
+                }
             } catch (error) {
                 console.error("Error fetching profile:", error.response?.data || error.message);
             }
@@ -55,6 +62,14 @@ const PublicProfile = () => {
                         </ul>
                     ) : (
                         <p>No blog posts yet.</p>
+                    )}
+
+                    {/* ✅ GitHub Projects Section */}
+                    <h2>{profile.username}'s GitHub Projects</h2>
+                    {githubUsername ? (
+                        <GitHubProjects githubUsername={githubUsername} />
+                    ) : (
+                        <p>🔴 This user has not linked their GitHub.</p>
                     )}
                 </>
             ) : (

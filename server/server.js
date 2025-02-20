@@ -473,7 +473,7 @@ app.get('/posts/:id/likes', authenticateToken, async (req, res) => {
 app.post('/posts/:id/comments', authenticateToken, async (req, res) => {
     const { id: post_id } = req.params;
     const user_id = req.user.id;
-    const { content } = req.body;
+    const { content, parent_id } = req.body;
 
     if (!content.trim()) {
         return res.status(400).json({ error: "Comment cannot be empty." });
@@ -481,8 +481,8 @@ app.post('/posts/:id/comments', authenticateToken, async (req, res) => {
 
     try {
         const newComment = await pool.query(
-            "INSERT INTO comments (post_id, user_id, content) VALUES ($1, $2, $3) RETURNING *",
-            [post_id, user_id, content]
+            "INSERT INTO comments (post_id, user_id, content, parent_id) VALUES ($1, $2, $3, $4) RETURNING *",
+            [post_id, user_id, content, parent_id || null]
         );
 
         res.status(201).json(newComment.rows[0]);
@@ -492,21 +492,40 @@ app.post('/posts/:id/comments', authenticateToken, async (req, res) => {
     }
 });
 
+
 app.get('/posts/:id/comments', async (req, res) => {
     const { id: post_id } = req.params;
 
     try {
         const comments = await pool.query(
-            "SELECT comments.*, users.username FROM comments JOIN users ON comments.user_id = users.id WHERE post_id = $1 ORDER BY created_at DESC",
+            `SELECT comments.*, users.username FROM comments 
+             JOIN users ON comments.user_id = users.id 
+             WHERE post_id = $1 ORDER BY created_at ASC`,
             [post_id]
         );
+        
+        const commentMap = {};
+        comments.rows.forEach(comment => {
+            comment.replies = [];
+            commentMap[comment.id] = comment;
+        });
 
-        res.json(comments.rows);
+        const topLevelComments = [];
+        comments.rows.forEach(comment => {
+            if (comment.parent_id) {
+                commentMap[comment.parent_id]?.replies.push(comment);
+            } else {
+                topLevelComments.push(comment);
+            }
+        });
+
+        res.json(topLevelComments);
     } catch (error) {
         console.error("Error fetching comments:", error);
         res.status(500).json({ error: "Something went wrong." });
     }
 });
+
 
 
 app.delete('/comments/:id', authenticateToken, async (req, res) => {
