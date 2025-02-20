@@ -58,6 +58,7 @@ const Dashboard = () => {
             <p>{message}</p>
             <button onClick={logout}>Logout</button>
             <button onClick={() => navigate("/profile")}>Edit Profile</button>
+            <button onClick={() => navigate("/blog/new")}>Create a Post</button>
 
             {/* Search Bar */}
             <form onSubmit={handleSearch}>
@@ -70,6 +71,7 @@ const Dashboard = () => {
                 <button type="submit">Search</button>
             </form>
 
+            {/* Search Results */}
             {searchResults.length > 0 && (
                 <div>
                     <h3>Search Results</h3>

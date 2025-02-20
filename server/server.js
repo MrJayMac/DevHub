@@ -421,6 +421,116 @@ app.get('/search', authenticateToken, async (req, res) => {
     }
 });
 
+//Like feature
+app.post('/posts/:id/like', authenticateToken, async (req, res) => {
+    const { id: post_id } = req.params;
+    const user_id = req.user.id;
+
+    try {
+        const existingLike = await pool.query(
+            "SELECT * FROM likes WHERE user_id = $1 AND post_id = $2",
+            [user_id, post_id]
+        );
+
+        if (existingLike.rows.length > 0) {
+            await pool.query("DELETE FROM likes WHERE user_id = $1 AND post_id = $2", [user_id, post_id]);
+            const likesCount = await pool.query("SELECT COUNT(*) FROM likes WHERE post_id = $1", [post_id]);
+            return res.json({ message: "Like removed.", likes: parseInt(likesCount.rows[0].count, 10), liked: false });
+        }
+
+
+        await pool.query("INSERT INTO likes (user_id, post_id) VALUES ($1, $2)", [user_id, post_id]);
+
+        const likesCount = await pool.query("SELECT COUNT(*) FROM likes WHERE post_id = $1", [post_id]);
+
+        res.json({ message: "Post liked successfully.", likes: parseInt(likesCount.rows[0].count, 10), liked: true });
+    } catch (error) {
+        console.error("Error liking post:", error);
+        res.status(500).json({ error: "Something went wrong." });
+    }
+});
+
+app.get('/posts/:id/likes', authenticateToken, async (req, res) => {
+    const { id: post_id } = req.params;
+    const user_id = req.user.id;
+
+    try {
+        const likesCount = await pool.query("SELECT COUNT(*) FROM likes WHERE post_id = $1", [post_id]);
+
+        const userLiked = await pool.query("SELECT 1 FROM likes WHERE user_id = $1 AND post_id = $2", [user_id, post_id]);
+
+        res.json({
+            likes: parseInt(likesCount.rows[0].count, 10),
+            hasLiked: userLiked.rows.length > 0
+        });
+    } catch (error) {
+        console.error("Error fetching likes:", error);
+        res.status(500).json({ error: "Something went wrong." });
+    }
+});
+
+//Comments feature
+app.post('/posts/:id/comments', authenticateToken, async (req, res) => {
+    const { id: post_id } = req.params;
+    const user_id = req.user.id;
+    const { content } = req.body;
+
+    if (!content.trim()) {
+        return res.status(400).json({ error: "Comment cannot be empty." });
+    }
+
+    try {
+        const newComment = await pool.query(
+            "INSERT INTO comments (post_id, user_id, content) VALUES ($1, $2, $3) RETURNING *",
+            [post_id, user_id, content]
+        );
+
+        res.status(201).json(newComment.rows[0]);
+    } catch (error) {
+        console.error("Error adding comment:", error);
+        res.status(500).json({ error: "Something went wrong." });
+    }
+});
+
+app.get('/posts/:id/comments', async (req, res) => {
+    const { id: post_id } = req.params;
+
+    try {
+        const comments = await pool.query(
+            "SELECT comments.*, users.username FROM comments JOIN users ON comments.user_id = users.id WHERE post_id = $1 ORDER BY created_at DESC",
+            [post_id]
+        );
+
+        res.json(comments.rows);
+    } catch (error) {
+        console.error("Error fetching comments:", error);
+        res.status(500).json({ error: "Something went wrong." });
+    }
+});
+
+
+app.delete('/comments/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const user_id = req.user.id;
+
+    try {
+        const comment = await pool.query("SELECT * FROM comments WHERE id = $1", [id]);
+
+        if (comment.rows.length === 0) {
+            return res.status(404).json({ error: "Comment not found." });
+        }
+
+        if (comment.rows[0].user_id !== user_id) {
+            return res.status(403).json({ error: "You can only delete your own comments." });
+        }
+
+        await pool.query("DELETE FROM comments WHERE id = $1", [id]);
+        res.json({ message: "Comment deleted successfully." });
+    } catch (error) {
+        console.error("Error deleting comment:", error);
+        res.status(500).json({ error: "Something went wrong." });
+    }
+});
 
 
 

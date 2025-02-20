@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import GitHubProjects from "../Projects/GithubProjects";
 
 const PublicProfile = () => {
     const { id } = useParams();
+    const navigate = useNavigate();
     const [profile, setProfile] = useState(null);
-    const [error, setError] = useState("");
+    const [posts, setPosts] = useState([]);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -16,41 +17,44 @@ const PublicProfile = () => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-                if (res.data) {
-                    setProfile(res.data);
-                    console.log("Profile loaded:", res.data);
-                } else {
-                    setError("Profile not found.");
-                }
+                setProfile(res.data);
             } catch (error) {
                 console.error("Error fetching profile:", error.response?.data || error.message);
-                setError(error.response?.data?.error || "Something went wrong.");
+            }
+        };
+
+        const fetchPosts = async () => {
+            try {
+                const res = await axios.get(`http://localhost:8000/posts/user/${id}`);
+                setPosts(res.data);
+            } catch (error) {
+                console.error("Error fetching user posts:", error);
             }
         };
 
         fetchProfile();
+        fetchPosts();
     }, [id]);
-
-    if (error) return <p style={{ color: "red" }}>{error}</p>;
-
-    const githubUsername = profile?.social_links?.github
-        ? profile.social_links.github.split("/").pop()
-        : null;
 
     return (
         <div>
             {profile ? (
                 <>
-                    {profile.profile_picture && <img src={profile.profile_picture} alt={profile.username} width="100" />}
                     <h1>{profile.username}</h1>
                     <p>{profile.bio}</p>
                     <h3>Skills: {profile.skills || "No skills added"}</h3>
 
-                    <h3>GitHub Projects</h3>
-                    {githubUsername ? (
-                        <GitHubProjects githubUsername={githubUsername} />
+                    <h2>Blog Posts</h2>
+                    {posts.length > 0 ? (
+                        <ul>
+                            {posts.map((post) => (
+                                <li key={post.id} onClick={() => navigate(`/blog/${post.id}`)} style={{ cursor: "pointer", textDecoration: "underline" }}>
+                                    {post.title} - {new Date(post.created_at).toLocaleDateString()}
+                                </li>
+                            ))}
+                        </ul>
                     ) : (
-                        <p>🔴 User has not linked their GitHub.</p>
+                        <p>No blog posts yet.</p>
                     )}
                 </>
             ) : (
