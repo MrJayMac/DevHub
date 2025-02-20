@@ -171,6 +171,7 @@ const Profile = () => {
             ) : (
                 <p>🔴 Please log in with GitHub to view your projects.</p>
             )}
+
         </div>
     );
 };
