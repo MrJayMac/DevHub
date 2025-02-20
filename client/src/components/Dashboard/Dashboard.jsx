@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../Auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Blog from "../Blog/Blog"; 
+import ProjectGallery from "../Projects/ProjectGallery";
 
 const Dashboard = () => {
     const { user, logout } = useAuth();
@@ -41,6 +42,9 @@ const Dashboard = () => {
             <h1>Dashboard</h1>
             {user && <h2>Welcome, {user.username}!</h2>}
             <p>{message}</p>
+
+            <h2>Your Projects</h2>
+            <ProjectGallery />
 
             <button onClick={logout}>Logout</button>
             <button onClick={() => navigate("/profile")}>Edit Profile</button>

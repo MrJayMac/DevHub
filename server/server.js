@@ -105,7 +105,7 @@ app.get('/me', authenticateToken, async (req, res) => {
 app.get('/profile', authenticateToken, async (req, res) => {
     try {
         const user = await pool.query(
-            "SELECT id, username, email, bio, skills, social_links, profile_picture FROM users WHERE id = $1", 
+            "SELECT id, username, email, bio, skills, experience, education, social_links, profile_picture FROM users WHERE id = $1", 
             [req.user.id]
         );
 
@@ -121,12 +121,12 @@ app.get('/profile', authenticateToken, async (req, res) => {
 });
 
 app.put('/profile', authenticateToken, async (req, res) => {
-    const { bio, skills, social_links, profile_picture } = req.body;
+    const { bio, skills, experience, education, social_links, profile_picture } = req.body;
 
     try {
         await pool.query(
-            "UPDATE users SET bio = $1, skills = $2, social_links = $3, profile_picture = $4 WHERE id = $5",
-            [bio, skills, JSON.stringify(social_links), profile_picture, req.user.id]
+            "UPDATE users SET bio = $1, skills = $2, experience = $3, education = $4, social_links = $5, profile_picture = $6 WHERE id = $7",
+            [bio, skills, JSON.stringify(experience), JSON.stringify(education), JSON.stringify(social_links), profile_picture, req.user.id]
         );
 
         res.json({ message: "Profile updated successfully" });
@@ -236,6 +236,52 @@ app.delete('/posts/:id', authenticateToken, async (req, res) => {
     }
 });
 
+app.put('/posts/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const { title, content } = req.body;
+
+    try {
+        const post = await pool.query("SELECT * FROM posts WHERE id = $1", [id]);
+        if (post.rows.length === 0) {
+            return res.status(404).json({ error: "Post not found" });
+        }
+
+        if (post.rows[0].user_id !== req.user.id) {
+            return res.status(403).json({ error: "Unauthorized" });
+        }
+
+        await pool.query(
+            "UPDATE posts SET title = $1, content = $2 WHERE id = $3",
+            [title, content, id]
+        );
+
+        res.json({ message: "Post updated successfully" });
+    } catch (error) {
+        console.error("Error updating post:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
+app.delete('/posts/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const post = await pool.query("SELECT * FROM posts WHERE id = $1", [id]);
+        if (post.rows.length === 0) {
+            return res.status(404).json({ error: "Post not found" });
+        }
+
+        if (post.rows[0].user_id !== req.user.id) {
+            return res.status(403).json({ error: "Unauthorized" });
+        }
+
+        await pool.query("DELETE FROM posts WHERE id = $1", [id]);
+        res.json({ message: "Post deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting post:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
 
 
 app.listen(PORT, () => console.log(`Server running on PORT: ${PORT}`));

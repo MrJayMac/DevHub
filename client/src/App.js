@@ -38,6 +38,7 @@ function App() {
           />
 
           <Route path="/blog/:id" element={<PrivateRoute><BlogPost /></PrivateRoute>} />
+          <Route path="/blog/edit/:id" element={<PrivateRoute><BlogEditor /></PrivateRoute>} />
 
         </Routes>
       </AuthProvider>
