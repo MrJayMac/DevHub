@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 const dotenv = require('dotenv');
 const pool = require('./db');
 const jwt = require('jsonwebtoken');
@@ -282,6 +283,172 @@ app.delete('/posts/:id', authenticateToken, async (req, res) => {
         res.status(500).json({ error: "Something went wrong" });
     }
 });
+
+//Projects
+app.post('/projects', authenticateToken, async (req, res) => {
+    const { title, description, github_link, image } = req.body;
+
+    if (!title || !description || !github_link) {
+        return res.status(400).json({ error: "Title, description, and GitHub link are required." });
+    }
+
+    try {
+        const newProject = await pool.query(
+            "INSERT INTO projects (user_id, title, description, github_link, image) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+            [req.user.id, title, description, github_link, image]
+        );
+        res.status(201).json(newProject.rows[0]);
+    } catch (error) {
+        console.error("Error creating project:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
+app.get('/projects', async (req, res) => {
+    try {
+        const projects = await pool.query(
+            "SELECT projects.*, users.username FROM projects JOIN users ON projects.user_id = users.id ORDER BY created_at DESC"
+        );
+        res.json(projects.rows);
+    } catch (error) {
+        console.error("Error fetching projects:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
+app.get('/projects/user/:user_id', async (req, res) => {
+    const { user_id } = req.params;
+    try {
+        const projects = await pool.query(
+            "SELECT * FROM projects WHERE user_id = $1 ORDER BY created_at DESC",
+            [user_id]
+        );
+        res.json(projects.rows);
+    } catch (error) {
+        console.error("Error fetching user's projects:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
+app.put('/projects/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const { title, description, github_link, image } = req.body;
+
+    try {
+        const project = await pool.query("SELECT * FROM projects WHERE id = $1", [id]);
+
+        if (project.rows.length === 0) {
+            return res.status(404).json({ error: "Project not found" });
+        }
+
+        if (project.rows[0].user_id !== req.user.id) {
+            return res.status(403).json({ error: "Unauthorized" });
+        }
+
+        await pool.query(
+            "UPDATE projects SET title = $1, description = $2, github_link = $3, image = $4 WHERE id = $5",
+            [title, description, github_link, image, id]
+        );
+
+        res.json({ message: "Project updated successfully" });
+    } catch (error) {
+        console.error("Error updating project:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
+app.delete('/projects/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const project = await pool.query("SELECT * FROM projects WHERE id = $1", [id]);
+
+        if (project.rows.length === 0) {
+            return res.status(404).json({ error: "Project not found" });
+        }
+
+        if (project.rows[0].user_id !== req.user.id) {
+            return res.status(403).json({ error: "Unauthorized" });
+        }
+
+        await pool.query("DELETE FROM projects WHERE id = $1", [id]);
+        res.json({ message: "Project deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting project:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
+
+//Github Project
+app.get('/auth/github', (req, res) => {
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID}&scope=read:user`;
+    res.redirect(githubAuthUrl);
+});
+
+app.get('/auth/github/callback', async (req, res) => {
+    const { code } = req.query;
+    if (!code) {
+        return res.status(400).json({ error: "No authorization code provided" });
+    }
+
+    try {
+        // Exchange code for access token
+        const tokenResponse = await axios.post(
+            'https://github.com/login/oauth/access_token',
+            {
+                client_id: process.env.GITHUB_CLIENT_ID,
+                client_secret: process.env.GITHUB_CLIENT_SECRET,
+                code,
+            },
+            { headers: { Accept: 'application/json' } }
+        );
+
+        const accessToken = tokenResponse.data.access_token;
+
+        // Fetch user data from GitHub
+        const userResponse = await axios.get('https://api.github.com/user', {
+            headers: { Authorization: `token ${accessToken}` }
+        });
+
+        const { login, avatar_url } = userResponse.data;
+
+        // Save GitHub username to the database for the logged-in user
+        await pool.query("UPDATE users SET social_links = jsonb_set(social_links, '{github}', $1) WHERE id = $2",
+            [JSON.stringify(`https://github.com/${login}`), req.user.id]
+        );
+
+        res.redirect(`http://localhost:3000/profile`); // Redirect back to profile page
+    } catch (error) {
+        console.error("GitHub OAuth error:", error);
+        res.status(500).json({ error: "GitHub authentication failed" });
+    }
+});
+
+
+
+app.get('/github/:username', async (req, res) => {
+    const { username } = req.params;
+
+    try {
+        const response = await axios.get(`https://api.github.com/users/${username}/repos?sort=updated`);
+        const repositories = response.data.map(repo => ({
+            id: repo.id,
+            name: repo.name,
+            description: repo.description,
+            html_url: repo.html_url,
+            language: repo.language,
+            stars: repo.stargazers_count
+        }));
+
+        res.json(repositories);
+    } catch (error) {
+        console.error("Error fetching GitHub repositories:", error);
+        res.status(500).json({ error: "Failed to fetch GitHub repositories" });
+    }
+});
+
+
 
 
 app.listen(PORT, () => console.log(`Server running on PORT: ${PORT}`));

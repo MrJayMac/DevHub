@@ -3,6 +3,7 @@ import { useAuth } from "../Auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Blog from "../Blog/Blog"; 
 import ProjectGallery from "../Projects/ProjectGallery";
+import GitHubProjects from "../Projects/GithubProjects";
 
 const Dashboard = () => {
     const { user, logout } = useAuth();
@@ -45,6 +46,9 @@ const Dashboard = () => {
 
             <h2>Your Projects</h2>
             <ProjectGallery />
+
+            <h2>Your GitHub Projects</h2>
+            <GitHubProjects githubUsername={user ? user.username : null} limit={3} />
 
             <button onClick={logout}>Logout</button>
             <button onClick={() => navigate("/profile")}>Edit Profile</button>

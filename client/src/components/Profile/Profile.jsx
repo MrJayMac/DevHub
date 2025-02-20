@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../Auth/AuthContext";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import GitHubProjects from "../Projects/GithubProjects";
 
 const Profile = () => {
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [profile, setProfile] = useState({
         bio: "",
@@ -89,6 +92,7 @@ const Profile = () => {
     return (
         <div>
             <h1>Profile</h1>
+            <button onClick={() => navigate("/dashboard")}>Back to dashboard</button>
             <form onSubmit={handleSubmit}>
                 <label>Bio:</label>
                 <textarea name="bio" value={profile.bio} onChange={handleChange} />
@@ -149,6 +153,24 @@ const Profile = () => {
                 <button type="submit">Update Profile</button>
             </form>
             {message && <p>{message}</p>}
+
+            <h2>Your GitHub</h2>
+            {profile.social_links.github ? (
+                <p>
+                    ✅ Connected to <a href={profile.social_links.github} target="_blank">{profile.social_links.github}</a>
+                </p>
+            ) : (
+                <a href="http://localhost:8000/auth/github">
+                    <button>Login with GitHub</button>
+                </a>
+            )}
+
+            <h2>Your GitHub Projects</h2>
+            {profile.social_links.github ? (
+                <GitHubProjects githubUsername={profile.social_links.github.split('/').pop()} />
+            ) : (
+                <p>🔴 Please log in with GitHub to view your projects.</p>
+            )}
         </div>
     );
 };
