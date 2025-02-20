@@ -137,6 +137,46 @@ app.put('/profile', authenticateToken, async (req, res) => {
     }
 });
 
+app.get('/profile/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        console.log(`Fetching profile for user ID: ${id}`);
+
+        const user = await pool.query(
+            "SELECT id, username, bio, skills, social_links, profile_picture FROM users WHERE id = $1",
+            [id]
+        );
+
+        if (user.rows.length === 0) {
+            console.log("User not found.");
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        const profileData = user.rows[0];
+        profileData.skills = profileData.skills || "No skills added";
+
+        // ✅ FIX: Only parse social_links if it's a string
+        if (typeof profileData.social_links === "string") {
+            try {
+                profileData.social_links = JSON.parse(profileData.social_links);
+            } catch (jsonError) {
+                console.error("Error parsing social_links JSON:", jsonError);
+                profileData.social_links = {};
+            }
+        } else if (!profileData.social_links) {
+            profileData.social_links = {};
+        }
+
+        console.log("Profile data fetched successfully:", profileData);
+        res.json(profileData);
+    } catch (error) {
+        console.error("Error fetching profile:", error);
+        res.status(500).json({ error: "Something went wrong" });
+    }
+});
+
+
 //  Create a New Blog Post
 app.post('/posts', authenticateToken, async (req, res) => {
     const { title, content } = req.body;
@@ -263,26 +303,23 @@ app.put('/posts/:id', authenticateToken, async (req, res) => {
     }
 });
 
-app.delete('/posts/:id', authenticateToken, async (req, res) => {
-    const { id } = req.params;
+//Get all blog posts for a specific user
+app.get('/posts/user/:user_id', async (req, res) => {
+    const { user_id } = req.params;
 
     try {
-        const post = await pool.query("SELECT * FROM posts WHERE id = $1", [id]);
-        if (post.rows.length === 0) {
-            return res.status(404).json({ error: "Post not found" });
-        }
+        const posts = await pool.query(
+            "SELECT id, title, created_at FROM posts WHERE user_id = $1 ORDER BY created_at DESC",
+            [user_id]
+        );
 
-        if (post.rows[0].user_id !== req.user.id) {
-            return res.status(403).json({ error: "Unauthorized" });
-        }
-
-        await pool.query("DELETE FROM posts WHERE id = $1", [id]);
-        res.json({ message: "Post deleted successfully" });
+        res.json(posts.rows);
     } catch (error) {
-        console.error("Error deleting post:", error);
+        console.error("Error fetching user's blog posts:", error);
         res.status(500).json({ error: "Something went wrong" });
     }
 });
+
 
 
 //Github Project
@@ -291,8 +328,9 @@ app.get('/auth/github', (req, res) => {
     res.redirect(githubAuthUrl);
 });
 
-app.get('/auth/github/callback', async (req, res) => {
+app.get('/auth/github/callback', authenticateToken, async (req, res) => {
     const { code } = req.query;
+
     if (!code) {
         return res.status(400).json({ error: "No authorization code provided" });
     }
@@ -314,9 +352,21 @@ app.get('/auth/github/callback', async (req, res) => {
             headers: { Authorization: `token ${accessToken}` }
         });
 
-        const { login, avatar_url } = userResponse.data;
+        const { login } = userResponse.data; 
 
-        await pool.query("UPDATE users SET social_links = jsonb_set(social_links, '{github}', $1) WHERE id = $2",
+
+        const existingUser = await pool.query(
+            "SELECT id FROM users WHERE social_links->>'github' = $1",
+            [`https://github.com/${login}`]
+        );
+
+        if (existingUser.rows.length > 0) {
+            return res.status(400).json({ error: "This GitHub account is already linked to another DevHub account." });
+        }
+
+
+        await pool.query(
+            "UPDATE users SET social_links = jsonb_set(social_links, '{github}', $1) WHERE id = $2",
             [JSON.stringify(`https://github.com/${login}`), req.user.id]
         );
 
@@ -347,6 +397,27 @@ app.get('/github/:username', async (req, res) => {
     } catch (error) {
         console.error("Error fetching GitHub repositories:", error);
         res.status(500).json({ error: "Failed to fetch GitHub repositories" });
+    }
+});
+
+//Search function
+app.get('/search', authenticateToken, async (req, res) => {
+    const { query } = req.query;
+
+    if (!query) {
+        return res.status(400).json({ error: "Search query is required" });
+    }
+
+    try {
+        const users = await pool.query(
+            "SELECT id, username, bio, profile_picture FROM users WHERE username ILIKE $1 LIMIT 5",
+            [`%${query}%`]
+        );
+
+        res.json(users.rows);
+    } catch (error) {
+        console.error("Error fetching search results:", error);
+        res.status(500).json({ error: "Something went wrong" });
     }
 });
 

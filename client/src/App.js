@@ -9,6 +9,10 @@ import Profile from "./components/Profile/Profile";
 import Blog from "./components/Blog/Blog";
 import BlogEditor from "./components/Blog/BlogEditor";
 import BlogPost from "./components/Blog/BlogPost";
+import PublicProfile from "./components/Profile/PublicProfile";
+
+
+
 
 function App() {
   return (
@@ -39,6 +43,7 @@ function App() {
 
           <Route path="/blog/:id" element={<PrivateRoute><BlogPost /></PrivateRoute>} />
           <Route path="/blog/edit/:id" element={<PrivateRoute><BlogEditor /></PrivateRoute>} />
+          <Route path="/profile/:id" element={<PrivateRoute><PublicProfile /></PrivateRoute>} />
 
         </Routes>
       </AuthProvider>
