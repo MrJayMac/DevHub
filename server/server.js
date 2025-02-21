@@ -383,22 +383,34 @@ app.get('/github/:username', async (req, res) => {
     const { username } = req.params;
 
     try {
-        const response = await axios.get(`https://api.github.com/users/${username}/repos?sort=updated`);
+        console.log(`Fetching GitHub repositories for: ${username}`);
+
+        const response = await axios.get(
+            `https://api.github.com/users/${username}/repos?sort=updated`,
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                    Accept: "application/vnd.github.v3+json"
+                }
+            }
+        );
+
         const repositories = response.data.map(repo => ({
             id: repo.id,
             name: repo.name,
             description: repo.description,
             html_url: repo.html_url,
             language: repo.language,
-            stars: repo.stargazers_count
         }));
 
         res.json(repositories);
     } catch (error) {
-        console.error("Error fetching GitHub repositories:", error);
+        console.error("Error fetching GitHub repositories:", error.response?.data || error.message);
         res.status(500).json({ error: "Failed to fetch GitHub repositories" });
     }
 });
+
+
 
 //Search function
 app.get('/search', authenticateToken, async (req, res) => {

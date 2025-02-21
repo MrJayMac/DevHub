@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useAuth } from '../Auth/AuthContext';
-import axios from 'axios';
+import { useState } from "react";
+import { useAuth } from "../Auth/AuthContext";
+import axios from "axios";
 
 const Login = () => {
     const { login } = useAuth();
@@ -68,52 +68,67 @@ const Login = () => {
     };
 
     return (
-        <div>
-            <form onSubmit={handleLogin}>
-                {signUp && (
+        <div className="flex h-screen items-center justify-center bg-black text-white">
+            <div className="absolute inset-0 bg-gradient-to-b from-black to-gray-900 opacity-80"></div>
+
+            <div className="relative w-full max-w-lg text-center p-10">
+                <h1 className="text-4xl font-bold text-gray-200 mb-6">Welcome</h1>
+
+                <form onSubmit={handleLogin} className="flex flex-col gap-5">
+                    {signUp && (
+                        <input 
+                            type='email' 
+                            placeholder='Email' 
+                            value={email} 
+                            onChange={(e) => setEmail(e.target.value)} 
+                            required 
+                            className="p-3 w-full bg-transparent border-b-2 border-gray-500 text-white focus:outline-none focus:border-blue-500 transition duration-300"
+                        />
+                    )}
+
                     <input 
-                        type='email' 
-                        placeholder='Email' 
-                        value={email} 
-                        onChange={(e) => setEmail(e.target.value)} 
+                        type='text' 
+                        placeholder='Username' 
+                        value={username} 
+                        onChange={(e) => setUsername(e.target.value)} 
                         required 
+                        className="p-3 w-full bg-transparent border-b-2 border-gray-500 text-white focus:outline-none focus:border-blue-500 transition duration-300"
                     />
-                )}
 
-                <input 
-                    type='text' 
-                    placeholder='Username' 
-                    value={username} 
-                    onChange={(e) => setUsername(e.target.value)} 
-                    required 
-                />
-
-                <input 
-                    type='password' 
-                    placeholder='Password' 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    required 
-                />
-
-                {signUp && (
                     <input 
                         type='password' 
-                        placeholder='Confirm Password' 
-                        value={confirmPassword} 
-                        onChange={(e) => setConfirmPassword(e.target.value)} 
+                        placeholder='Password' 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
                         required 
+                        className="p-3 w-full bg-transparent border-b-2 border-gray-500 text-white focus:outline-none focus:border-blue-500 transition duration-300"
                     />
-                )}
 
-                <button type="submit">{signUp ? 'Register' : 'Login'}</button>
-            </form>
+                    {signUp && (
+                        <input 
+                            type='password' 
+                            placeholder='Confirm Password' 
+                            value={confirmPassword} 
+                            onChange={(e) => setConfirmPassword(e.target.value)} 
+                            required 
+                            className="p-3 w-full bg-transparent border-b-2 border-gray-500 text-white focus:outline-none focus:border-blue-500 transition duration-300"
+                        />
+                    )}
 
-            {error && <p style={{ color: "red" }}>{error}</p>} 
+                    <button type="submit" className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition duration-300 shadow-md">
+                        {signUp ? 'Register' : 'Login'}
+                    </button>
+                </form>
 
-            <button onClick={toggleView}>
-                {signUp ? "Already have an account?" : "Create an account"}
-            </button>
+                {error && <p className="text-red-400 text-sm mt-4">{error}</p>} 
+
+                <button 
+                    onClick={toggleView} 
+                    className="mt-6 text-gray-400 hover:text-gray-200 transition text-sm"
+                >
+                    {signUp ? "Already have an account?" : "Create an account"}
+                </button>
+            </div>
         </div>
     );
 };

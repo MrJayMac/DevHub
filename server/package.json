@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "autoprefixer": "^10.4.20",
     "axios": "^1.7.9",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
@@ -7,6 +8,8 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.3",
-    "pool": "^0.4.1"
+    "pool": "^0.4.1",
+    "postcss": "^8.5.3",
+    "postcss-loader": "^8.1.1"
   }
 }
