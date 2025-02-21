@@ -53,7 +53,6 @@ const Dashboard = () => {
 
     return (
         <div>
-            <h1>Dashboard</h1>
             {user && <h2>Welcome, {user.username}!</h2>}
             <p>{message}</p>
             <button onClick={logout}>Logout</button>
