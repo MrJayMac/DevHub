@@ -36,7 +36,6 @@ const Login = () => {
                 });
 
                 if (response.status === 201) {
-                    console.log('Registration Successful:', response.data);
                     setSignUp(false);
                 } else {
                     setError(response.data.error || 'Something went wrong');
@@ -56,7 +55,6 @@ const Login = () => {
                 });
 
                 if (response.data.token) {
-                    console.log('Login Successful:', response.data.token);
                     login(response.data.username, response.data.token); 
                 } else {
                     setError('Login failed. Please check your credentials.');
@@ -68,13 +66,16 @@ const Login = () => {
     };
 
     return (
-        <div className="flex h-screen items-center justify-center bg-black text-white">
-            <div className="absolute inset-0 bg-gradient-to-b from-black to-gray-900 opacity-80"></div>
+        <div className="flex h-screen w-full justify-center items-center text-white">
+            <div className="relative flex w-full max-w-md flex-col items-center p-8 space-y-6">
+                
+                {/* 🔹 Welcome Header */}
+                <h1 className="text-lg uppercase font-medium text-u-300 tracking-wide">
+                    {signUp ? "Create an Account" : "Welcome Back"}
+                </h1>
 
-            <div className="relative w-full max-w-lg text-center p-10">
-                <h1 className="text-4xl font-bold text-gray-200 mb-6">Welcome</h1>
-
-                <form onSubmit={handleLogin} className="flex flex-col gap-5">
+                {/* 🔹 Form */}
+                <form onSubmit={handleLogin} className="flex flex-col w-full gap-5">
                     {signUp && (
                         <input 
                             type='email' 
@@ -82,7 +83,7 @@ const Login = () => {
                             value={email} 
                             onChange={(e) => setEmail(e.target.value)} 
                             required 
-                            className="p-3 w-full bg-transparent border-b-2 border-gray-500 text-white focus:outline-none focus:border-blue-500 transition duration-300"
+                            className="w-full p-3 bg-transparent border-b border-gray-500 text-white focus:border-blue-500 focus:outline-none transition"
                         />
                     )}
 
@@ -92,7 +93,7 @@ const Login = () => {
                         value={username} 
                         onChange={(e) => setUsername(e.target.value)} 
                         required 
-                        className="p-3 w-full bg-transparent border-b-2 border-gray-500 text-white focus:outline-none focus:border-blue-500 transition duration-300"
+                        className="w-full p-3 bg-transparent border-b border-gray-500 text-white focus:border-blue-500 focus:outline-none transition"
                     />
 
                     <input 
@@ -101,7 +102,7 @@ const Login = () => {
                         value={password} 
                         onChange={(e) => setPassword(e.target.value)} 
                         required 
-                        className="p-3 w-full bg-transparent border-b-2 border-gray-500 text-white focus:outline-none focus:border-blue-500 transition duration-300"
+                        className="w-full p-3 bg-transparent border-b border-gray-500 text-white focus:border-blue-500 focus:outline-none transition"
                     />
 
                     {signUp && (
@@ -111,20 +112,26 @@ const Login = () => {
                             value={confirmPassword} 
                             onChange={(e) => setConfirmPassword(e.target.value)} 
                             required 
-                            className="p-3 w-full bg-transparent border-b-2 border-gray-500 text-white focus:outline-none focus:border-blue-500 transition duration-300"
+                            className="w-full p-3 bg-transparent border-b border-gray-500 text-white focus:border-blue-500 focus:outline-none transition"
                         />
                     )}
 
-                    <button type="submit" className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition duration-300 shadow-md">
+                    {/* 🔹 Submit Button */}
+                    <button 
+                        type="submit" 
+                        className="w-full py-3 text-sm uppercase font-medium text-white border border-gray-700 rounded-lg hover:bg-gray-800 hover:text-white transition"
+                    >
                         {signUp ? 'Register' : 'Login'}
                     </button>
                 </form>
 
-                {error && <p className="text-red-400 text-sm mt-4">{error}</p>} 
+                {/* 🔹 Error Message */}
+                {error && <p className="text-red-400 text-sm">{error}</p>} 
 
+                {/* 🔹 Toggle Sign Up / Login */}
                 <button 
                     onClick={toggleView} 
-                    className="mt-6 text-gray-400 hover:text-gray-200 transition text-sm"
+                    className="text-gray-400 hover:text-white transition text-sm"
                 >
                     {signUp ? "Already have an account?" : "Create an account"}
                 </button>
