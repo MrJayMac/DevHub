@@ -44,36 +44,62 @@ const PublicProfile = () => {
     }, [id]);
 
     return (
-        <div>
+        <div className="min-h-screen bg-gradient-to-b from-black to-gray-900 text-white flex flex-col items-center p-8">
+            <button onClick={() => navigate("/dashboard")} className="btn mb-4">
+                ⬅ Back to Dashboard
+            </button>
+
             {profile ? (
-                <>
-                    <h1>{profile.username}</h1>
-                    <p>{profile.bio}</p>
-                    <h3>Skills: {profile.skills || "No skills added"}</h3>
+                <div className="max-w-3xl w-full bg-gray-800 p-6 rounded-lg shadow-md">
+                    <div className="flex flex-col items-center">
+                        {profile.profile_picture && (
+                            <img src={profile.profile_picture} alt="Profile" className="w-24 h-24 rounded-full mb-4" />
+                        )}
+                        <h1 className="text-3xl font-bold">{profile.username}</h1>
+                        <p className="text-gray-400">{profile.bio || "No bio available"}</p>
+                    </div>
 
-                    <h2>Blog Posts</h2>
-                    {posts.length > 0 ? (
-                        <ul>
-                            {posts.map((post) => (
-                                <li key={post.id} onClick={() => navigate(`/blog/${post.id}`)} style={{ cursor: "pointer", textDecoration: "underline" }}>
-                                    {post.title} - {new Date(post.created_at).toLocaleDateString()}
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
-                        <p>No blog posts yet.</p>
-                    )}
+                    {/* Skills Section */}
+                    <div className="mt-6">
+                        <h3 className="text-xl font-semibold">Skills</h3>
+                        <p className="text-gray-300">{profile.skills || "No skills added"}</p>
+                    </div>
 
-                    {/* ✅ GitHub Projects Section */}
-                    <h2>{profile.username}'s GitHub Projects</h2>
-                    {githubUsername ? (
-                        <GitHubProjects githubUsername={githubUsername} />
-                    ) : (
-                        <p>🔴 This user has not linked their GitHub.</p>
-                    )}
-                </>
+                    {/* Blog Posts */}
+                    <div className="mt-6">
+                        <h2 className="text-xl font-semibold">Blog Posts</h2>
+                        {posts.length > 0 ? (
+                            <ul className="mt-2 space-y-2">
+                                {posts.map((post) => (
+                                    <li
+                                        key={post.id}
+                                        onClick={() => navigate(`/blog/${post.id}`)}
+                                        className="bg-gray-700 p-3 rounded-lg cursor-pointer hover:bg-gray-600 transition"
+                                    >
+                                        <p className="text-lg font-bold">{post.title}</p>
+                                        <p className="text-gray-400 text-sm">
+                                            {new Date(post.created_at).toLocaleDateString()}
+                                        </p>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-gray-400">No blog posts yet.</p>
+                        )}
+                    </div>
+
+                    {/* GitHub Projects (Styled Like Neo Scholar) */}
+                    <div className="mt-6">
+                        <h2 className="text-xl font-semibold">{profile.username}'s GitHub Projects</h2>
+                        {githubUsername ? (
+                            <GitHubProjects githubUsername={githubUsername} />
+                        ) : (
+                            <p className="text-gray-400">🔴 This user has not linked their GitHub.</p>
+                        )}
+                    </div>
+                </div>
             ) : (
-                <p>Loading profile...</p>
+                <p className="text-white text-center mt-20 text-2xl">Loading profile...</p>
             )}
         </div>
     );
