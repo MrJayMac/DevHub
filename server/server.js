@@ -382,30 +382,45 @@ app.get('/auth/github/callback', authenticateToken, async (req, res) => {
 app.get('/github/:username', async (req, res) => {
     const { username } = req.params;
 
+    console.log(`🚀 Received request for GitHub username: ${username}`);
+
     try {
-        console.log(`Fetching GitHub repositories for: ${username}`);
+        const apiUrl = `https://api.github.com/users/${username}/repos?sort=updated`;
+        console.log(`🔍 Fetching data from: ${apiUrl}`);
 
-        const response = await axios.get(
-            `https://api.github.com/users/${username}/repos?sort=updated`,
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-                    Accept: "application/vnd.github.v3+json"
-                }
+        const response = await axios.get(apiUrl, {
+            headers: {
+                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                Accept: "application/vnd.github.v3+json"
             }
-        );
+        });
 
+        console.log("✅ GitHub API response received!");
+
+        if (!response.data || response.data.length === 0) {
+            console.log("⚠ No repositories found for this user.");
+            return res.json([]);
+        }
+
+        // Process and return filtered repositories
         const repositories = response.data.map(repo => ({
             id: repo.id,
             name: repo.name,
-            description: repo.description,
+            description: repo.description || "No description available",
             html_url: repo.html_url,
-            language: repo.language,
+            language: repo.language || "N/A",
         }));
 
+        console.log(`📦 Returning ${repositories.length} repositories.`);
         res.json(repositories);
     } catch (error) {
-        console.error("Error fetching GitHub repositories:", error.response?.data || error.message);
+        console.error("❌ Error fetching GitHub repositories:", error.response?.data || error.message);
+
+        // Capture GitHub rate-limiting issues
+        if (error.response?.status === 403) {
+            console.error("🚨 GitHub API rate limit exceeded! You may need to authenticate.");
+        }
+
         res.status(500).json({ error: "Failed to fetch GitHub repositories" });
     }
 });

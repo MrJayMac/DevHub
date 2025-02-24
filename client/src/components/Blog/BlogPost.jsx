@@ -1,18 +1,17 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../Auth/AuthContext";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const BlogPost = () => {
     const { id } = useParams();
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [post, setPost] = useState(null);
     const [likes, setLikes] = useState(0);
     const [hasLiked, setHasLiked] = useState(false);
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState("");
-    const [replyingTo, setReplyingTo] = useState(null);
-    const [replyText, setReplyText] = useState(""); 
 
     useEffect(() => {
         const fetchPost = async () => {
@@ -71,120 +70,83 @@ const BlogPost = () => {
         }
     };
 
-    const handleReplySubmit = async (e, parentId) => {
-        e.preventDefault();
-        if (!replyText.trim()) return;
-    
-        try {
-            const res = await axios.post(
-                `http://localhost:8000/posts/${id}/comments`,
-                { content: replyText, parent_id: parentId },
-                { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-            );
-    
-            setComments((prevComments) => {
-                const updateReplies = (comments) => {
-                    return comments.map(comment => {
-                        if (comment.id === parentId) {
-                            return { ...comment, replies: [...(comment.replies || []), res.data] };
-                        }
-                        return { ...comment, replies: comment.replies ? updateReplies(comment.replies) : [] };
-                    });
-                };
-                return updateReplies(prevComments);
-            });
-    
-            setReplyingTo(null); 
-            setReplyText("");  
-        } catch (error) {
-            console.error("Error adding reply:", error.response?.data || error.message);
-        }
-    };
-    
-
-    const handleDeleteComment = async (commentId) => {
-        try {
-            await axios.delete(`http://localhost:8000/comments/${commentId}`, {
-                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-            });
-
-            setComments((prevComments) => {
-                const filterComments = (comments) => {
-                    return comments
-                        .filter(comment => comment.id !== commentId)
-                        .map(comment => ({
-                            ...comment,
-                            replies: comment.replies ? filterComments(comment.replies) : []
-                        }));
-                };
-                return filterComments(prevComments);
-            });
-        } catch (error) {
-            console.error("Error deleting comment:", error.response?.data || error.message);
-        }
-    };
-
-    const handleReplyClick = (commentId) => {
-        setReplyingTo(replyingTo === commentId ? null : commentId);
-        setReplyText("");
-    };
-
-    const renderComments = (commentList) => {
-        return commentList.map((comment) => (
-            <div key={comment.id} style={{ marginLeft: comment.parent_id ? "20px" : "0px", borderLeft: comment.parent_id ? "2px solid gray" : "none", paddingLeft: "10px" }}>
-                <p><strong>{comment.username}:</strong> {comment.content}</p>
-
-                <button onClick={() => handleReplyClick(comment.id)}>↪ Reply</button>
-
-                {user?.id === comment.user_id && (
-                    <button onClick={() => handleDeleteComment(comment.id)}>🗑 Delete</button>
-                )}
-
-                {replyingTo === comment.id && (
-                    <form onSubmit={(e) => handleReplySubmit(e, comment.id)} style={{ marginTop: "5px" }}>
-                        <input 
-                            type="text" 
-                            placeholder="Write a reply..." 
-                            value={replyText} 
-                            onChange={(e) => setReplyText(e.target.value)} 
-                        />
-                        <button type="submit">Reply</button>
-                    </form>
-                )}
-
-                {comment.replies?.length > 0 && <div>{renderComments(comment.replies)}</div>}
-            </div>
-        ));
-    };
-
-    if (!post) return <h2>Loading post...</h2>;
+    if (!post) return <h2 className="text-white text-center mt-20 text-2xl">Loading post...</h2>;
 
     return (
-        <div>
-            <h1>{post.title}</h1>
-            <p>{post.content}</p>
+        <div className="flex h-screen w-full justify-center overflow-scroll">
+            <div className="flex w-full max-w-[700px] flex-col gap-2 p-4 py-16 font-light text-white">
+                
+                {/* 🔹 Back Button */}
+                <button 
+                    onClick={() => navigate("/blog")} 
+                    className="text-sm text-gray-400 hover:text-white transition w-fit mb-4">
+                    &lt; Back
+                </button>
 
-            <button onClick={handleLike}>
-                {hasLiked ? "Remove Like" : "Like"} ({likes})
-            </button>
+                {/* Blog Title */}
+                <h2 className="text-lg uppercase font-medium text-u-300 tracking-wide">
+                    {post.title}
+                </h2>
 
+                {/* Meta Info */}
+                <div className="flex flex-row items-center text-sm text-u-300">
+                    <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                </div>
 
-            <h2>Comments</h2>
-            <form onSubmit={handleCommentSubmit}>
-                <input 
-                    type="text" 
-                    placeholder="Write a comment..." 
-                    value={newComment} 
-                    onChange={(e) => setNewComment(e.target.value)} 
-                />
-                <button type="submit">Post</button>
-            </form>
+                {/* Blog Content */}
+                <article className="prose prose-headings:font-medium prose-headings:uppercase prose-headings:leading-none prose-headings:text-u-300 prose-h1:text-sm prose-h2:text-xs prose-h3:text-xs prose-h3:italic prose-p:text-[15px] prose-p:font-light prose-p:leading-snug prose-p:text-white prose-a:text-u-300 prose-a:underline hover:prose-a:text-white prose-blockquote:border-l-2 prose-blockquote:border-u-300 prose-blockquote:pl-4 prose-blockquote:font-normal prose-blockquote:italic prose-blockquote:text-u-300">
+                    <p>{post.content}</p>
+                </article>
 
-            {comments.length > 0 ? (
-                <div>{renderComments(comments)}</div>
-            ) : (
-                <p>No comments yet.</p>
-            )}
+                <hr className="my-2 w-full border-u-300/10" />
+
+                {/* Like Button (Heart Emoji) */}
+                <div className="flex justify-start mt-3">
+                    <button 
+                        onClick={handleLike} 
+                        className="text-lg text-gray-400 hover:text-red-500 transition">
+                        {hasLiked ? "❤️" : "🤍"} <span className="text-sm text-gray-500 ml-1">{likes}</span>
+                    </button>
+                </div>
+
+                {/* Comment Section */}
+                <div className="mt-12">
+                    <h2 className="text-xs uppercase font-medium text-u-300">Comments</h2>
+
+                    {/* Add Comment */}
+                    <form onSubmit={handleCommentSubmit} className="flex gap-2 mt-3">
+                        <input 
+                            type="text"
+                            placeholder="Write a comment..." 
+                            value={newComment} 
+                            onChange={(e) => setNewComment(e.target.value)} 
+                            className="w-full px-3 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-gray-500 focus:outline-none text-sm"
+                        />
+                        <button 
+                            type="submit" 
+                            className="px-3 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white text-sm transition">
+                            Post
+                        </button>
+                    </form>
+
+                    {/* Display Comments */}
+                    <div className="mt-6 space-y-6">
+                        {comments.length > 0 ? (
+                            comments.map((comment) => (
+                                <div key={comment.id} className="p-3 bg-gray-800 rounded-lg">
+                                    <p className="text-sm text-gray-400">
+                                        <strong>{comment.username}:</strong> {comment.content}
+                                    </p>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-gray-500 text-sm">No comments yet.</p>
+                        )}
+                    </div>
+                </div>
+
+                <hr className="my-2 w-full border-u-300/10" />
+            </div>
         </div>
     );
 };
