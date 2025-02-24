@@ -12,6 +12,9 @@ const Profile = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [bio, setBio] = useState("");
     const [skills, setSkills] = useState("");
+    const [githubLink, setGithubLink] = useState("");
+    const [isAddingGitHub, setIsAddingGitHub] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -21,60 +24,90 @@ const Profile = () => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-                setProfile({
+                const profileData = {
                     ...res.data,
                     social_links: res.data.social_links || {},
-                });
-                setBio(res.data.bio || "");
-                setSkills(res.data.skills || "");
+                };
+
+                setProfile(profileData);
+                setBio(profileData.bio || "");
+                setSkills(profileData.skills || "");
+                setGithubLink(profileData.social_links?.github || "");
+
+                if (profileData.id) {
+                    const postsRes = await axios.get(`http://localhost:8000/posts/user/${profileData.id}`);
+                    setPosts(postsRes.data);
+                }
             } catch (error) {
                 console.error("Error fetching profile:", error);
-            }
-        };
-
-        const fetchPosts = async () => {
-            try {
-                const res = await axios.get(`http://localhost:8000/posts/user/${user.id}`);
-                setPosts(res.data);
-            } catch (error) {
-                console.error("Error fetching user posts:", error);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchProfile();
-        fetchPosts();
-    }, [user.id]);
+    }, []);
 
     const handleSave = async () => {
         try {
             const token = localStorage.getItem("token");
-            await axios.put("http://localhost:8000/profile", { bio, skills }, {
+            await axios.put("http://localhost:8000/profile", { bio, skills, social_links: { github: githubLink } }, {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            setProfile((prev) => ({ ...prev, bio, skills }));
+            setProfile((prev) => ({
+                ...prev,
+                bio,
+                skills,
+                social_links: { ...prev.social_links, github: githubLink }
+            }));
             setIsEditing(false);
+            setIsAddingGitHub(false);
         } catch (error) {
             console.error("Error updating profile:", error);
         }
     };
 
-    if (!profile) return <p className="text-white text-center mt-20 text-2xl">Loading profile...</p>;
+    const handleDeleteAccount = async () => {
+        const confirmDelete = window.confirm("Are you sure you want to delete your account? This action cannot be undone.");
+        if (!confirmDelete) return;
+
+        try {
+            const token = localStorage.getItem("token");
+            await axios.delete("http://localhost:8000/profile", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            navigate("/"); // Redirect after deletion
+        } catch (error) {
+            console.error("Error deleting account:", error);
+        }
+    };
+
+    if (loading) return <p className="text-gray-400 text-center mt-20 text-2xl">Loading profile...</p>;
 
     return (
-        <div className="flex h-screen w-full justify-center overflow-scroll">
-            <div className="flex w-full max-w-[700px] flex-col gap-4 p-4 py-16 font-light text-white">
+        <div className="flex h-screen w-full justify-center overflow-scroll relative">
+            <div className="flex w-full max-w-[700px] flex-col gap-6 p-4 py-16 font-light text-white">
 
-                {/* 🔹 Back Button */}
-                <button 
-                    onClick={() => navigate("/dashboard")} 
-                    className="text-gray-300 hover:text-white transition font-medium text-sm mb-4"
-                >
-                    ← Back
-                </button>
+                {/* 🔹 Header Section */}
+                <div className="flex justify-between items-center">
+                    <button 
+                        onClick={() => navigate("/dashboard")} 
+                        className="text-gray-400 hover:text-white transition text-sm border border-gray-600 px-3 py-1 rounded-lg"
+                    >
+                        ← Back
+                    </button>
+                    <button 
+                        onClick={() => setIsEditing(true)} 
+                        className="text-gray-400 hover:text-white transition text-sm border border-gray-600 px-3 py-1 rounded-lg"
+                    >
+                        Edit Profile ✎
+                    </button>
+                </div>
 
                 {/* 🔹 Profile Header */}
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center mt-6">
                     {profile.profile_picture && (
                         <img src={profile.profile_picture} alt="Profile" className="w-24 h-24 rounded-full mb-4" />
                     )}
@@ -84,11 +117,11 @@ const Profile = () => {
                 </div>
 
                 {/* 🔹 Bio & Skills Section */}
-                <div className="mt-6">
-                    <h3 className="text-xs uppercase font-medium text-u-300">About</h3>
+                <div>
+                    <h3 className="text-xs uppercase font-medium text-u-300 mb-2">About</h3>
 
                     {isEditing ? (
-                        <div className="mt-2">
+                        <div className="space-y-4">
                             <textarea
                                 value={bio}
                                 onChange={(e) => setBio(e.target.value)}
@@ -99,10 +132,10 @@ const Profile = () => {
                                 type="text"
                                 value={skills}
                                 onChange={(e) => setSkills(e.target.value)}
-                                className="w-full p-2 mt-2 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-gray-500 focus:outline-none"
+                                className="w-full p-2 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-gray-500 focus:outline-none"
                                 placeholder="Skills (comma-separated)"
                             />
-                            <div className="flex space-x-4 mt-4">
+                            <div className="flex space-x-4">
                                 <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-700 hover:text-white transition">
                                     Save
                                 </button>
@@ -112,12 +145,9 @@ const Profile = () => {
                             </div>
                         </div>
                     ) : (
-                        <div className="mt-2">
+                        <div className="space-y-2">
                             <p className="text-gray-400">{profile.bio || "No bio available"}</p>
                             <p className="text-gray-400"><strong>Skills:</strong> {profile.skills || "No skills added"}</p>
-                            <button onClick={() => setIsEditing(true)} className="text-white text-left hover:text-u-300 transition text-lg mt-4">
-                                Edit Profile →
-                            </button>
                         </div>
                     )}
                 </div>
@@ -125,19 +155,20 @@ const Profile = () => {
                 <hr className="my-4 w-full border-u-300/10" />
 
                 {/* 🔹 Blog Posts Section */}
-                <div className="mt-6">
+                <div>
                     <h3 className="text-xs uppercase font-medium text-u-300">Blog Posts</h3>
-
-                    <div className="mt-2 space-y-6">
+                    <div className="mt-4 space-y-6">
                         {posts.length > 0 ? (
                             posts.map((post) => (
                                 <div 
                                     key={post.id} 
                                     onClick={() => navigate(`/blog/${post.id}`)}
-                                    className="cursor-pointer border-l-4 border-blue-500 pl-4 transition hover:opacity-80"
+                                    className="flex justify-between items-center border-b border-neutral-800 pb-4 hover:opacity-80 transition cursor-pointer"
                                 >
-                                    <h3 className="text-lg font-semibold">{post.title}</h3>
-                                    <p className="text-gray-400">{new Date(post.created_at).toLocaleDateString()}</p>
+                                    <div>
+                                        <h3 className="text-lg font-semibold">{post.title}</h3>
+                                        <p className="text-gray-500 text-sm">{new Date(post.created_at).toLocaleDateString()}</p>
+                                    </div>
                                 </div>
                             ))
                         ) : (
@@ -149,17 +180,38 @@ const Profile = () => {
                 <hr className="my-4 w-full border-u-300/10" />
 
                 {/* 🔹 GitHub Projects Section */}
-                <div className="mt-6">
+                <div>
                     <h3 className="text-xs uppercase font-medium text-u-300">GitHub Projects</h3>
-
                     {profile.social_links.github ? (
                         <GitHubProjects githubUsername={profile.social_links.github.split('/').pop()} />
+                    ) : isAddingGitHub ? (
+                        <div className="mt-4">
+                            <input
+                                type="text"
+                                placeholder="Enter GitHub profile URL"
+                                value={githubLink}
+                                onChange={(e) => setGithubLink(e.target.value)}
+                                className="w-full p-2 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-gray-500 focus:outline-none"
+                            />
+                        </div>
                     ) : (
-                        <p className="text-gray-500">No GitHub account linked.</p>
+                        <button 
+                            onClick={() => setIsAddingGitHub(true)}
+                            className="text-gray-400 hover:text-white transition text-sm border border-gray-600 px-3 py-1 rounded-lg mt-2"
+                        >
+                            + Add GitHub
+                        </button>
                     )}
                 </div>
 
                 <hr className="my-4 w-full border-u-300/10" />
+
+                {/* 🔥 Delete Account Button */}
+                {isEditing && (
+                    <button onClick={handleDeleteAccount} className="text-red-500 hover:text-red-700 transition text-sm border border-red-600 px-3 py-1 rounded-lg">
+                        Delete Account
+                    </button>
+                )}
             </div>
         </div>
     );

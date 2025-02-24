@@ -101,6 +101,17 @@ app.get('/me', authenticateToken, async (req, res) => {
     }
 });
 
+app.get('/users/random', async (req, res) => {
+    try {
+        const users = await pool.query("SELECT id, username, bio FROM users ORDER BY RANDOM() LIMIT 3");
+        res.json(users.rows);
+    } catch (error) {
+        console.error("Error fetching random users:", error);
+        res.status(500).json({ error: "Something went wrong." });
+    }
+});
+
+
 
 // Profile Routes
 app.get('/profile', authenticateToken, async (req, res) => {
@@ -382,45 +393,29 @@ app.get('/auth/github/callback', authenticateToken, async (req, res) => {
 app.get('/github/:username', async (req, res) => {
     const { username } = req.params;
 
-    console.log(`🚀 Received request for GitHub username: ${username}`);
-
     try {
-        const apiUrl = `https://api.github.com/users/${username}/repos?sort=updated`;
-        console.log(`🔍 Fetching data from: ${apiUrl}`);
 
-        const response = await axios.get(apiUrl, {
-            headers: {
-                Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-                Accept: "application/vnd.github.v3+json"
+        const response = await axios.get(
+            `https://api.github.com/users/${username}/repos?sort=updated`,
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+                    Accept: "application/vnd.github.v3+json"
+                }
             }
-        });
+        );
 
-        console.log("✅ GitHub API response received!");
-
-        if (!response.data || response.data.length === 0) {
-            console.log("⚠ No repositories found for this user.");
-            return res.json([]);
-        }
-
-        // Process and return filtered repositories
         const repositories = response.data.map(repo => ({
             id: repo.id,
             name: repo.name,
-            description: repo.description || "No description available",
+            description: repo.description,
             html_url: repo.html_url,
-            language: repo.language || "N/A",
+            language: repo.language,
         }));
 
-        console.log(`📦 Returning ${repositories.length} repositories.`);
         res.json(repositories);
     } catch (error) {
-        console.error("❌ Error fetching GitHub repositories:", error.response?.data || error.message);
-
-        // Capture GitHub rate-limiting issues
-        if (error.response?.status === 403) {
-            console.error("🚨 GitHub API rate limit exceeded! You may need to authenticate.");
-        }
-
+        console.error("Error fetching GitHub repositories:", error.response?.data || error.message);
         res.status(500).json({ error: "Failed to fetch GitHub repositories" });
     }
 });

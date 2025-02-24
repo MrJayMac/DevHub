@@ -26,21 +26,33 @@ const GitHubProjects = ({ githubUsername }) => {
 
     return (
         <div className="mt-6">
-            <h2 className="text-xl font-semibold">GitHub Projects</h2>
+            <h2 className="text-lg font-medium text-u-300 mb-2">GitHub Projects</h2>
+
             {githubProjects.length === 0 ? (
                 <p className="text-gray-400">No public repositories found.</p>
             ) : (
-                <div className="space-y-8 mt-4">
+                <div className="space-y-6">
                     {githubProjects.map((project) => (
-                        <div key={project.id} className="border-l-4 border-blue-500 pl-4">
-                            <h3 className="text-xl font-semibold">{project.name}</h3>
-                            <p className="mt-2">{project.description || "No description available"}</p>
-                            {project.language && (
-                                <p className="text-sm text-gray-500 mt-2">Language: {project.language}</p>
-                            )}
-                            <a href={project.html_url} target="_blank" className="text-blue-400 mt-2 block hover:underline">
-                                View on GitHub →
-                            </a>
+                        <div 
+                            key={project.id} 
+                            className="flex justify-between items-center border-b border-neutral-800 pb-4 hover:opacity-80 transition cursor-pointer"
+                        >
+                            <div>
+                                <h3 className="text-lg font-semibold">{project.name}</h3>
+                                <p className="text-gray-500 text-sm">{project.description || "No description available"}</p>
+                            </div>
+                            <div className="flex flex-col items-end">
+                                {project.language && (
+                                    <p className="text-sm text-gray-500">{project.language}</p>
+                                )}
+                                <a 
+                                    href={project.html_url} 
+                                    target="_blank" 
+                                    className="text-blue-400 hover:underline text-sm"
+                                >
+                                    View →
+                                </a>
+                            </div>
                         </div>
                     ))}
                 </div>

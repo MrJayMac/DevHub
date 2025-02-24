@@ -43,25 +43,58 @@ const BlogEditor = () => {
     };
 
     return (
-        <div>
-            <h1>{id ? "Edit Post" : "Create a Post"}</h1>
-            <form onSubmit={handleSubmit}>
-                <input 
-                    type="text" 
-                    placeholder="Title" 
-                    value={title} 
-                    onChange={(e) => setTitle(e.target.value)} 
-                    required 
-                />
-                <textarea 
-                    placeholder="Content" 
-                    value={content} 
-                    onChange={(e) => setContent(e.target.value)} 
-                    required 
-                />
-                <button type="submit">{id ? "Update" : "Publish"}</button>
-            </form>
-            <button onClick={() => navigate(-1)}>Cancel</button>
+        <div className="flex h-screen w-full justify-center overflow-scroll">
+            <div className="flex w-full max-w-[700px] flex-col gap-4 p-4 py-16 font-light text-white">
+                
+                {/* 🔹 Back Button */}
+                <button 
+                    onClick={() => navigate(-1)} 
+                    className="text-gray-300 hover:text-white transition font-medium text-sm mb-4"
+                >
+                    ← Cancel
+                </button>
+
+                {/* 🔹 Title */}
+                <h1 className="text-lg uppercase font-medium text-u-300 tracking-wide">
+                    {id ? "Edit Post" : "Create a Post"}
+                </h1>
+
+                {/* 🔹 Blog Form */}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <input 
+                        type="text" 
+                        placeholder="Title" 
+                        value={title} 
+                        onChange={(e) => setTitle(e.target.value)} 
+                        required 
+                        className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-blue-500 focus:outline-none transition"
+                    />
+
+                    <textarea 
+                        placeholder="Write your content here..." 
+                        value={content} 
+                        onChange={(e) => setContent(e.target.value)} 
+                        required 
+                        className="w-full h-40 px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-600 focus:border-blue-500 focus:outline-none transition"
+                    />
+
+                    <div className="flex space-x-4">
+                        <button 
+                            type="submit" 
+                            className="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-700 hover:text-white transition"
+                        >
+                            {id ? "Update" : "Publish"}
+                        </button>
+
+                        <button 
+                            onClick={() => navigate(-1)} 
+                            className="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-700 hover:text-white transition"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };

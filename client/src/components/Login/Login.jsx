@@ -70,8 +70,8 @@ const Login = () => {
             <div className="relative flex w-full max-w-md flex-col items-center p-8 space-y-6">
                 
                 {/* 🔹 Welcome Header */}
-                <h1 className="text-lg uppercase font-medium text-u-300 tracking-wide">
-                    {signUp ? "Create an Account" : "Welcome Back"}
+                <h1 className="text-lg font-medium text-u-300 tracking-wide">
+                    {signUp ? "Create an Account" : "DevHub"}
                 </h1>
 
                 {/* 🔹 Form */}
